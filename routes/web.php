@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+use App\Http\Controllers\AiController;
+
+Route::get('/', [AiController::class, 'index']);
+Route::post('/ask', [AiController::class, 'ask'])->name('ask');
