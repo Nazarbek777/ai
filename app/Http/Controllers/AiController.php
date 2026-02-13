@@ -22,13 +22,24 @@ class AiController extends Controller
     public function ask(Request $request)
     {
         $request->validate([
-            'prompt' => 'required|string',
+            'prompt' => 'required_without:messages|string',
+            'messages' => 'array',
         ]);
 
-        $response = $this->ollama->chat($request->prompt);
+        $data = $request->has('messages') ? $request->messages : $request->prompt;
 
-        return response()->json([
-            'response' => $response,
+        return response()->stream(function () use ($data) {
+            $this->ollama->chat($data, function ($chunk) {
+                echo $chunk;
+                if (ob_get_level() > 0) {
+                    ob_flush();
+                }
+                flush();
+            });
+        }, 200, [
+            'Content-Type' => 'text/plain; charset=UTF-8',
+            'Cache-Control' => 'no-cache',
+            'X-Accel-Buffering' => 'no', // For Nginx
         ]);
     }
 

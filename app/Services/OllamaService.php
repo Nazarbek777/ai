@@ -17,25 +17,57 @@ class OllamaService
     }
 
     /**
-     * Send a prompt to the Ollama API using the Chat API and get a response.
+     * Send a prompt or message history to the Ollama API using the Chat API.
+     * Supports streaming if a callback is provided.
      */
-    public function chat(string $prompt)
+    public function chat($promptOrMessages, ?callable $onChunk = null)
     {
         try {
-            $response = Http::timeout(120)->post("{$this->baseUrl}/api/chat", [
-                'model' => $this->model,
-                'messages' => [
+            if (is_array($promptOrMessages)) {
+                $messages = $promptOrMessages;
+            } else {
+                $messages = [
                     [
                         'role' => 'system',
-                        'content' => 'Siz aqlli va yordam berishga tayyor AI yordamchisiz. Barcha savollarga faqat o\'zbek tilida, aniq va tushunarli javob bering. Hech qachon ingliz tilida tarjima qilishingizni so\'rashmasa, tarjima qilmang.'
+                        'content' => 'Siz dunyo darajasidagi professional dasturchi va texnik ekspertsiz. Barcha dasturlash tillari (PHP, JavaScript, Python, Dart/Flutter, C++, Go, Rust va boshqalar), arxitektura, ma\'lumotlar bazasi va sun\'iy intelekt sohalarida chuqur bilimga egasiz. Foydalanuvchi savollariga har doim professional, aniq va texnik jihatdan mukammal javob bering. Javoblaringiz faqat o\'zbek tilida bo\'lsin. Kod misollarini har doim tegishli markdown formatida taqdim eting.'
                     ],
                     [
                         'role' => 'user',
-                        'content' => $prompt
+                        'content' => $promptOrMessages
                     ]
-                ],
-                'stream' => false,
+                ];
+            }
+
+            $response = Http::timeout(120)->withOptions([
+                'stream' => true,
+            ])->post("{$this->baseUrl}/api/chat", [
+                'model' => $this->model,
+                'messages' => $messages,
+                'stream' => (bool)$onChunk,
             ]);
+
+            if ($onChunk) {
+                $body = $response->toPsrResponse()->getBody();
+                $buffer = '';
+                while (!$body->eof()) {
+                    $chunk = $body->read(1024);
+                    $buffer .= $chunk;
+                    
+                    // Ollama sends multiple JSON objects, one per line or in chunks
+                    while (($pos = strpos($buffer, "\n")) !== false) {
+                        $line = substr($buffer, 0, $pos);
+                        $buffer = substr($buffer, $pos + 1);
+                        
+                        if (trim($line)) {
+                            $data = json_decode($line, true);
+                            if (isset($data['message']['content'])) {
+                                $onChunk($data['message']['content']);
+                            }
+                        }
+                    }
+                }
+                return;
+            }
 
             if ($response->successful()) {
                 return $response->json('message.content');
