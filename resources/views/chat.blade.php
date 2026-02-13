@@ -90,14 +90,19 @@
                 <i class="ri-flashlight-line text-2xl text-white"></i>
             </div>
             <div>
-                <h1 class="text-xl font-bold tracking-tight text-white">AI Pro</h1>
+                <h1 class="text-xl font-bold tracking-tight text-white">Smart AI</h1>
                 <div class="flex items-center gap-1.5">
                     <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">System Online • Assistant</span>
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">System Online • Active</span>
                 </div>
             </div>
         </div>
         <div class="flex items-center gap-4">
+            <button onclick="clearHistory()" class="flex items-center gap-2 group p-2.5 px-4 rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all border border-white/5 bg-white/5">
+                <i class="ri-delete-bin-line text-lg"></i>
+                <span class="text-xs font-bold uppercase tracking-wider hidden md:block">Tozalash</span>
+            </button>
+            <div class="h-8 w-[1px] bg-white/10"></div>
             <div class="flex items-center gap-3">
                 <div class="text-right hidden sm:block">
                     <p class="text-xs font-bold text-white">Nazarbek</p>
@@ -107,9 +112,6 @@
                     N
                 </div>
             </div>
-            <button onclick="window.location.reload()" class="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all border border-white/5">
-                <i class="ri-refresh-line text-xl"></i>
-            </button>
         </div>
     </header>
 
@@ -164,12 +166,40 @@
         const sendBtn = document.getElementById('send-btn');
 
         // Chat History Storage
+        const DEFAULT_SYSTEM_PROMPT = 'Sizning ismingiz AI Pro. Siz Nazarbekka yordam beradigan tajribali dasturchisiz. Har doim samimiy va faqat o\'zbek tilida muloqot qiling. Savollarga aniq va tushunarli javob bering.';
+        
         let messages = [
             {
                 role: 'system',
-                content: 'Siz dunyo darajasidagi professional dasturchi va texnik ekspertsiz. Barcha dasturlash tillari (PHP, JavaScript, Python, Dart/Flutter, C++, Go, Rust va boshqalar), arxitektura, ma\'lumotlar bazasi va sun\'iy intelekt sohalarida chuqur bilimga egasiz. Foydalanuvchi savollariga har doim professional, aniq va texnik jihatdan mukammal javob bering. Javoblaringiz faqat o\'zbek tilida bo\'lsin. Kod misollarini har doim tegishli markdown formatida taqdim eting.'
+                content: DEFAULT_SYSTEM_PROMPT
             }
         ];
+
+        function clearHistory() {
+            if (confirm('Suhbat tarixini tozalashni xohlaysizmi?')) {
+                messages = [{ role: 'system', content: DEFAULT_SYSTEM_PROMPT }];
+                chatContainer.innerHTML = '';
+                // Append original welcome message back
+                appendWelcomeMessage();
+            }
+        }
+
+        function appendWelcomeMessage() {
+            const div = document.createElement('div');
+            div.className = 'flex gap-5 max-w-4xl message-fade-in';
+            div.innerHTML = `
+                <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0">
+                    <i class="ri-robot-2-line text-indigo-400 text-xl"></i>
+                </div>
+                <div class="glass p-5 rounded-3xl rounded-tl-none">
+                    <p class="text-[15px] leading-relaxed text-slate-200">
+                        Assalomu alaykum, <b>Nazarbek</b>! Men sizning universal AI yordamchingizman. 
+                        Dasturlash, arxitektura yoki har qanday texnik masalada savollaringizga professional javob berishga tayyorman.
+                    </p>
+                </div>
+            `;
+            chatContainer.appendChild(div);
+        }
 
         // Configure Marked
         marked.setOptions({

@@ -29,7 +29,7 @@ class OllamaService
                 $messages = [
                     [
                         'role' => 'system',
-                        'content' => 'Siz dunyo darajasidagi professional dasturchi va texnik ekspertsiz. Barcha dasturlash tillari (PHP, JavaScript, Python, Dart/Flutter, C++, Go, Rust va boshqalar), arxitektura, ma\'lumotlar bazasi va sun\'iy intelekt sohalarida chuqur bilimga egasiz. Foydalanuvchi savollariga har doim professional, aniq va texnik jihatdan mukammal javob bering. Javoblaringiz faqat o\'zbek tilida bo\'lsin. Kod misollarini har doim tegishli markdown formatida taqdim eting.'
+                        'content' => 'Sizning ismingiz AI Pro. Siz Nazarbekka yordam beradigan tajribali dasturchisiz. Har doim samimiy va faqat o\'zbek tilida muloqot qiling. Savollarga aniq va tushunarli javob bering.'
                     ],
                     [
                         'role' => 'user',
