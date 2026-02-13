@@ -298,13 +298,43 @@
                 return;
             }
 
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                currentImageData = e.target.result;
-                document.getElementById('image-preview').src = currentImageData;
+            resizeImage(file, 800, 800, (base64) => {
+                currentImageData = base64;
+                document.getElementById('image-preview').src = base64;
                 document.getElementById('image-name').textContent = file.name;
-                document.getElementById('image-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+                document.getElementById('image-size').textContent = (base64.length * 0.75 / 1024).toFixed(1) + ' KB (optimized)';
                 document.getElementById('image-preview-container').classList.remove('hidden');
+            });
+        }
+
+        function resizeImage(file, maxWidth, maxHeight, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height *= maxWidth / width;
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width *= maxHeight / height;
+                            height = maxHeight;
+                        }
+                    }
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    callback(canvas.toDataURL('image/jpeg', 0.8));
+                };
+                img.src = e.target.result;
             };
             reader.readAsDataURL(file);
         }
@@ -371,7 +401,11 @@
                     body: JSON.stringify({ messages: messages })
                 });
 
-                if (!response.ok) throw new Error('API Error');
+                if (!response.ok) {
+                    if (response.status === 413) throw new Error('Rasm juda katta! Server qabul qilmadi.');
+                    if (response.status === 400) throw new Error('Xato: Ehtimol tanlangan model rasm bilan ishlashni bilmaydi.');
+                    throw new Error('Serverda xatolik yuz berdi (' + response.status + ')');
+                }
 
                 loadingDiv.remove();
 

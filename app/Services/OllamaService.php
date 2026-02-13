@@ -44,6 +44,8 @@ class OllamaService
                 ];
             }
 
+            Log::info("Ollama Request: model={$this->model}, messages=" . count($messages));
+            
             $response = Http::timeout(120)->withOptions([
                 'stream' => true,
             ])->post("{$this->baseUrl}/api/chat", [
@@ -58,6 +60,15 @@ class OllamaService
                     'repeat_penalty' => 1.1,
                 ]
             ]);
+
+            if (!$response->successful()) {
+                Log::error('Ollama API Error Status: ' . $response->status());
+                Log::error('Ollama API Error Body: ' . $response->body());
+                if ($onChunk) {
+                    $onChunk("Xatolik: Ollama serveridan xato keldi (" . $response->status() . "). Ehtimol tanlangan model rasm bilan ishlashni qo'llab-quvvatlamaydi.");
+                    return;
+                }
+            }
 
             if ($onChunk) {
                 $body = $response->toPsrResponse()->getBody();
