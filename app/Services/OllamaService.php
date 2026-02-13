@@ -25,11 +25,17 @@ class OllamaService
         try {
             if (is_array($promptOrMessages)) {
                 $messages = $promptOrMessages;
+                // Limit history to last 15 messages to avoid context confusion
+                if (count($messages) > 15) {
+                    $systemMessage = $messages[0]; // Keep system prompt
+                    $history = array_slice($messages, -14);
+                    $messages = array_merge([$systemMessage], $history);
+                }
             } else {
                 $messages = [
                     [
                         'role' => 'system',
-                        'content' => 'Sizning ismingiz AI Pro. Siz Nazarbekka yordam beradigan tajribali dasturchisiz. Har doim samimiy va faqat o\'zbek tilida muloqot qiling. Savollarga aniq va tushunarli javob bering.'
+                        'content' => 'Siz aqlli va yordam berishga tayyor AI yordamchisiz. Har doim faqat o\'zbek tilida tabiiy muloqot qiling. Javoblaringiz qisqa, aniq va grammatik jihatdan to\'g\'ri bo\'lsin.'
                     ],
                     [
                         'role' => 'user',
@@ -44,6 +50,13 @@ class OllamaService
                 'model' => $this->model,
                 'messages' => $messages,
                 'stream' => (bool)$onChunk,
+                'options' => [
+                    'temperature' => 0.2,
+                    'num_ctx' => 4096,
+                    'top_k' => 40,
+                    'top_p' => 0.9,
+                    'repeat_penalty' => 1.1,
+                ]
             ]);
 
             if ($onChunk) {

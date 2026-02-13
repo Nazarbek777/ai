@@ -167,7 +167,7 @@
         const sendBtn = document.getElementById('send-btn');
 
         // Chat History Storage
-        const DEFAULT_SYSTEM_PROMPT = 'Sizning ismingiz AI Pro. Siz Nazarbekka yordam beradigan tajribali dasturchisiz. Har doim samimiy va faqat o\'zbek tilida muloqot qiling. Savollarga aniq va tushunarli javob bering.';
+        const DEFAULT_SYSTEM_PROMPT = 'Faqat o\'zbek tilida, aniq va qisqa javob ber.';
         
         let messages = [
             {
