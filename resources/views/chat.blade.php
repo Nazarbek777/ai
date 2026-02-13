@@ -142,12 +142,34 @@
         <form id="chat-form" class="max-w-5xl mx-auto relative group">
             @csrf
             <div class="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-3xl blur opacity-20 group-focus-within:opacity-40 transition duration-500"></div>
-            <div class="relative flex items-center">
-                <input type="text" id="prompt-input" autocomplete="off" placeholder="Savolingizni bu yerga yozing..." 
-                    class="w-full bg-slate-800/80 border border-white/10 rounded-2xl py-5 pl-7 pr-16 focus:outline-none focus:border-indigo-500/50 transition-all text-[15px] text-white placeholder-slate-500">
-                <button type="submit" id="send-btn" class="absolute right-2.5 p-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
-                    <i class="ri-send-plane-fill text-xl"></i>
-                </button>
+            <div id="image-preview-container" class="hidden mb-4 p-2 glass rounded-2xl flex items-center gap-4 animate-fade-in">
+                <div class="relative w-20 h-20 rounded-xl overflow-hidden border border-white/10 group/preview">
+                    <img id="image-preview" src="" class="w-full h-full object-cover">
+                    <button type="button" onclick="clearImage()" class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity">
+                        <i class="ri-close-line text-white text-2xl"></i>
+                    </button>
+                </div>
+                <div class="text-sm">
+                    <p class="text-slate-200 font-medium truncate max-w-[200px]" id="image-name"></p>
+                    <p class="text-slate-500 text-xs" id="image-size"></p>
+                </div>
+            </div>
+
+            <div class="relative flex items-center gap-3">
+                <div class="relative flex-1">
+                    <input type="text" id="prompt-input" autocomplete="off" placeholder="Savolingizni yoki rasm haqida so'rang..." 
+                        class="w-full bg-slate-800/80 border border-white/10 rounded-2xl py-5 pl-7 pr-16 focus:outline-none focus:border-indigo-500/50 transition-all text-[15px] text-white placeholder-slate-500">
+                    
+                    <div class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                        <input type="file" id="image-input" accept="image/*" class="hidden" onchange="handleImageSelect(this)">
+                        <button type="button" onclick="document.getElementById('image-input').click()" class="p-3 text-slate-400 hover:text-indigo-400 transition-colors">
+                            <i class="ri-image-add-line text-xl"></i>
+                        </button>
+                        <button type="submit" id="send-btn" class="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-95">
+                            <i class="ri-send-plane-fill text-xl"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </form>
         <div class="mt-4 flex justify-center items-center gap-6 opacity-30">
@@ -213,7 +235,7 @@
             breaks: true
         });
 
-        function appendMessage(role, text) {
+        function appendMessage(role, text, image = null) {
             const div = document.createElement('div');
             div.className = `flex gap-5 ${role === 'user' ? 'flex-row-reverse' : ''} max-w-4xl ${role === 'user' ? 'ml-auto' : ''} message-fade-in`;
             
@@ -221,9 +243,20 @@
                 ? '<div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-600/20 text-white font-bold">N</div>'
                 : '<div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0"><i class="ri-robot-2-line text-indigo-400 text-xl"></i></div>';
             
+            let messageContent = role === 'user' ? `<p class="leading-relaxed m-0">${text}</p>` : marked.parse(text);
+            
+            if (role === 'user' && image) {
+                messageContent = `
+                    <div class="mb-3 rounded-2xl overflow-hidden border border-white/20">
+                        <img src="${image}" class="max-w-full h-auto max-h-[300px] object-contain">
+                    </div>
+                    ${messageContent}
+                `;
+            }
+
             const content = `
                 <div class="${role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'glass text-slate-200 rounded-tl-none'} p-5 rounded-3xl shadow-xl prose prose-invert max-w-none">
-                    ${role === 'user' ? `<p class="leading-relaxed m-0">${text}</p>` : marked.parse(text)}
+                    ${messageContent}
                 </div>
             `;
             
@@ -253,6 +286,35 @@
             pre.appendChild(btn);
         }
 
+        // Vision Handling
+        let currentImageData = null;
+
+        function handleImageSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert('Faqat rasm yuklash mumkin!');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImageData = e.target.result;
+                document.getElementById('image-preview').src = currentImageData;
+                document.getElementById('image-name').textContent = file.name;
+                document.getElementById('image-size').textContent = (file.size / 1024).toFixed(1) + ' KB';
+                document.getElementById('image-preview-container').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            currentImageData = null;
+            document.getElementById('image-input').value = '';
+            document.getElementById('image-preview-container').classList.add('hidden');
+        }
+
         function quickAsk(text) {
             promptInput.value = text;
             chatForm.dispatchEvent(new Event('submit'));
@@ -269,8 +331,18 @@
             sendBtn.disabled = true;
             sendBtn.innerHTML = '<i class="ri-loader-5-line animate-spin text-xl"></i>';
 
-            appendMessage('user', prompt);
-            messages.push({ role: 'user', content: prompt });
+            const userMsg = { role: 'user', content: prompt };
+            if (currentImageData) {
+                // Ollama expects base64 without the prefix: data:image/jpeg;base64,
+                const base64Data = currentImageData.split(',')[1];
+                userMsg.images = [base64Data];
+            }
+
+            appendMessage('user', prompt, currentImageData);
+            messages.push(userMsg);
+            
+            const lastImage = currentImageData; // Store for preview logic if needed
+            clearImage();
 
             const loadingId = 'loading-' + Date.now();
             const loadingDiv = document.createElement('div');
