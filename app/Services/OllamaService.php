@@ -17,19 +17,28 @@ class OllamaService
     }
 
     /**
-     * Send a prompt to the Ollama API and get a response.
+     * Send a prompt to the Ollama API using the Chat API and get a response.
      */
     public function chat(string $prompt)
     {
         try {
-            $response = Http::timeout(60)->post("{$this->baseUrl}/api/generate", [
+            $response = Http::timeout(120)->post("{$this->baseUrl}/api/chat", [
                 'model' => $this->model,
-                'prompt' => $prompt,
+                'messages' => [
+                    [
+                        'role' => 'system',
+                        'content' => 'Siz aqlli va yordam berishga tayyor AI yordamchisiz. Barcha savollarga faqat o\'zbek tilida, aniq va tushunarli javob bering. Hech qachon ingliz tilida tarjima qilishingizni so\'rashmasa, tarjima qilmang.'
+                    ],
+                    [
+                        'role' => 'user',
+                        'content' => $prompt
+                    ]
+                ],
                 'stream' => false,
             ]);
 
             if ($response->successful()) {
-                return $response->json('response');
+                return $response->json('message.content');
             }
 
             Log::error('Ollama API Error: ' . $response->body());
