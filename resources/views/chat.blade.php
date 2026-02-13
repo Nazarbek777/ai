@@ -93,12 +93,21 @@
                 <h1 class="text-xl font-bold tracking-tight text-white">AI Pro</h1>
                 <div class="flex items-center gap-1.5">
                     <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
-                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">System Online • Ollama</span>
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">System Online • Assistant</span>
                 </div>
             </div>
         </div>
-        <div class="flex items-center gap-3">
-            <button onclick="window.location.reload()" class="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all">
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs font-bold text-white">Nazarbek</p>
+                    <p class="text-[10px] text-slate-400">Foydalanuvchi</p>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-indigo-400 font-bold shadow-lg shadow-indigo-500/10">
+                    N
+                </div>
+            </div>
+            <button onclick="window.location.reload()" class="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all border border-white/5">
                 <i class="ri-refresh-line text-xl"></i>
             </button>
         </div>
@@ -113,7 +122,7 @@
             </div>
             <div class="glass p-5 rounded-3xl rounded-tl-none">
                 <p class="text-[15px] leading-relaxed text-slate-200">
-                    Assalomu alaykum! Men sizning universal AI yordamchingizman. 
+                    Assalomu alaykum, <b>Nazarbek</b>! Men sizning universal AI yordamchingizman. 
                     Dasturlash, arxitektura yoki har qanday texnik masalada savollaringizga professional javob berishga tayyorman.
                 </p>
                 <div class="mt-4 flex flex-wrap gap-2">
@@ -178,7 +187,7 @@
             div.className = `flex gap-5 ${role === 'user' ? 'flex-row-reverse' : ''} max-w-4xl ${role === 'user' ? 'ml-auto' : ''} message-fade-in`;
             
             const avatar = role === 'user' 
-                ? '<div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-600/20"><i class="ri-user-3-line text-white text-xl"></i></div>'
+                ? '<div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-indigo-600/20 text-white font-bold">N</div>'
                 : '<div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0"><i class="ri-robot-2-line text-indigo-400 text-xl"></i></div>';
             
             const content = `
@@ -269,7 +278,7 @@
                     <div class="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0">
                         <i class="ri-robot-2-line text-indigo-400 text-xl"></i>
                     </div>
-                    <div class="glass p-5 rounded-3xl rounded-tl-none prose prose-invert max-w-none text-slate-200">
+                    <div class="glass p-5 rounded-3xl rounded-tl-none prose prose-invert max-w-none text-slate-200 w-full overflow-hidden">
                         <div class="markdown-body"></div>
                     </div>
                 `;
@@ -279,22 +288,32 @@
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
                 let fullText = '';
+                
+                // For smoother rendering
+                let pendingUpdate = false;
+                const updateUI = () => {
+                    mdBody.innerHTML = marked.parse(fullText);
+                    mdBody.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightElement(block);
+                        addCopyButton(block.parentElement);
+                    });
+                    chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'auto' });
+                    pendingUpdate = false;
+                };
 
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
                     
-                    const chunk = decoder.decode(value, { stream: true });
-                    fullText += chunk;
-                    mdBody.innerHTML = marked.parse(fullText);
+                    fullText += decoder.decode(value, { stream: true });
                     
-                    mdBody.querySelectorAll('pre code').forEach((block) => {
-                        hljs.highlightElement(block);
-                        addCopyButton(block.parentElement);
-                    });
-                    
-                    chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'instant' });
+                    if (!pendingUpdate) {
+                        pendingUpdate = true;
+                        requestAnimationFrame(updateUI);
+                    }
                 }
+                
+                updateUI(); // Final update
 
                 // Push bot response to history
                 messages.push({ role: 'assistant', content: fullText });
