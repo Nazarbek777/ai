@@ -31,4 +31,19 @@ class AiController extends Controller
             'response' => $response,
         ]);
     }
+
+    public function logs()
+    {
+        $logPath = storage_path('logs/laravel.log');
+        $logs = '';
+
+        if (file_exists($logPath)) {
+            $logs = file_get_contents($logPath);
+            // Reverse logs to show newest first
+            $lines = explode("\n", trim($logs));
+            $logs = implode("\n", array_reverse($lines));
+        }
+
+        return view('logs', compact('logs'));
+    }
 }

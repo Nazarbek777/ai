@@ -6,3 +6,4 @@ use App\Http\Controllers\AiController;
 
 Route::get('/', [AiController::class, 'index']);
 Route::post('/ask', [AiController::class, 'ask'])->name('ask');
+Route::get('/logs', [AiController::class, 'logs'])->name('logs');
